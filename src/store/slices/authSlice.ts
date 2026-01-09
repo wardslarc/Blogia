@@ -84,10 +84,17 @@ export const login = createAsyncThunk(
       return rejectWithValue('Authentication is not configured. Please contact support.');
     }
     try {
-      const { data: { user: authUser }, error } = await supabase.auth.signInWithPassword({
+      // Add timeout to the auth call itself
+      const authPromise = supabase.auth.signInWithPassword({
         email,
         password,
       });
+      
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Login request timed out. Please try again.')), 10000);
+      });
+
+      const { data: { user: authUser }, error } = await Promise.race([authPromise, timeoutPromise]);
 
       if (error) throw error;
 
@@ -112,25 +119,30 @@ export const signup = createAsyncThunk(
       return rejectWithValue('Authentication is not configured. Please contact support.');
     }
     try {
-      const { data: { user: authUser }, error } = await supabase.auth.signUp({
+      // Add timeout to the auth call itself
+      const authPromise = supabase.auth.signUp({
         email,
         password,
       });
+      
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Signup request timed out. Please try again.')), 10000);
+      });
+
+      const { data: { user: authUser }, error } = await Promise.race([authPromise, timeoutPromise]);
 
       if (error) throw error;
 
       if (authUser) {
-        // Create user profile
-        try {
-          await supabase.from('profiles').insert({
-            id: authUser.id,
-            email,
-            name,
-            avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${name}`,
-          });
-        } catch (profileError) {
+        // Create user profile (don't block on this)
+        supabase.from('profiles').insert({
+          id: authUser.id,
+          email,
+          name,
+          avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${name}`,
+        }).catch(profileError => {
           console.error('Error creating profile:', profileError);
-        }
+        });
 
         const appUser = await mapSessionToUser(authUser);
         return appUser;

@@ -26,18 +26,25 @@ const mapSessionToUser = async (sessionUser: any) => {
   };
 
   try {
-    const { data } = await supabase
+    const profilePromise = supabase
       .from('profiles')
       .select('*')
       .eq('id', sessionUser.id)
       .maybeSingle();
 
-    if (data) {
+    // 2-second timeout for profile fetch
+    const timeoutPromise = new Promise<null>((resolve) => {
+      setTimeout(() => resolve(null), 2000);
+    });
+
+    const result = await Promise.race([profilePromise, timeoutPromise]);
+
+    if (result && 'data' in result && result.data) {
       return {
         id: sessionUser.id,
         email: sessionUser.email || '',
-        name: data.name || userName,
-        avatar: data.avatar || defaultAvatar,
+        name: result.data.name || userName,
+        avatar: result.data.avatar || defaultAvatar,
         createdAt: new Date(sessionUser.created_at),
       };
     }
