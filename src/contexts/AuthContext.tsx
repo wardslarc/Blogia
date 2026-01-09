@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from '@/types/blog';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured, withTimeout } from '@/lib/supabase';
+import { isValidEmail, validatePassword, checkRateLimit } from '@/lib/security';
+import { handleError, secureLog, ErrorCode, createAppError } from '@/lib/errorHandler';
 
 interface AuthContextType {
   user: User | null;
@@ -22,7 +24,7 @@ export const useAuth = () => {
 
 const mapSessionToUser = async (sessionUser: any): Promise<User> => {
   const userName = sessionUser.email?.split('@')[0] || 'User';
-  const defaultAvatar = `https://api.dicebear.com/7.x/initials/svg?seed=${sessionUser.email}`;
+  const defaultAvatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(sessionUser.email || 'user')}`;
   
   const defaultUser: User = {
     id: sessionUser.id,
@@ -31,6 +33,10 @@ const mapSessionToUser = async (sessionUser: any): Promise<User> => {
     avatar: defaultAvatar,
     createdAt: new Date(sessionUser.created_at),
   };
+
+  if (!isSupabaseConfigured) {
+    return defaultUser;
+  }
   
   try {
     // Use Promise.race with a timeout
@@ -40,11 +46,7 @@ const mapSessionToUser = async (sessionUser: any): Promise<User> => {
       .eq('id', sessionUser.id)
       .maybeSingle();
     
-    const timeoutPromise = new Promise<null>((resolve) => {
-      setTimeout(() => resolve(null), 2000);
-    });
-    
-    const result = await Promise.race([profilePromise, timeoutPromise]);
+    const result = await withTimeout(profilePromise, 3000, 'Fetch profile');
     
     if (result && 'data' in result && result.data) {
       return {
@@ -58,6 +60,7 @@ const mapSessionToUser = async (sessionUser: any): Promise<User> => {
     
     return defaultUser;
   } catch (error) {
+    secureLog('warn', 'Failed to fetch user profile, using defaults');
     return defaultUser;
   }
 };
@@ -71,8 +74,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Initialize auth session on mount
     const initializeAuth = async () => {
+      if (!isSupabaseConfigured) {
+        secureLog('warn', 'Supabase not configured, skipping auth initialization');
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await withTimeout(
+          supabase.auth.getSession(),
+          10000,
+          'Get session'
+        );
         if (isMounted) {
           if (session?.user) {
             const appUser = await mapSessionToUser(session.user);
@@ -81,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsLoading(false);
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        secureLog('error', 'Error initializing auth');
         if (isMounted) {
           setIsLoading(false);
         }
@@ -105,7 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser(null);
           }
         } catch (error) {
-          console.error('Error in onAuthStateChange:', error);
+          secureLog('error', 'Error in auth state change handler');
         }
       }
     );
@@ -117,11 +130,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string) => {
+    // Validate email format
+    if (!isValidEmail(email)) {
+      throw createAppError(ErrorCode.VALIDATION_ERROR, 'Invalid email format');
+    }
+
+    // Rate limiting for login attempts
+    const rateLimitCheck = checkRateLimit(`login-${email}`);
+    if (!rateLimitCheck.allowed) {
+      throw createAppError(
+        ErrorCode.RATE_LIMITED,
+        `Too many login attempts. Please wait ${rateLimitCheck.retryAfter} seconds.`
+      );
+    }
+
+    if (!isSupabaseConfigured) {
+      throw createAppError(ErrorCode.CONFIGURATION_ERROR, 'Authentication service is not configured');
+    }
+
     try {
-      const { data: { user: authUser }, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data: { user: authUser }, error } = await withTimeout(
+        supabase.auth.signInWithPassword({
+          email,
+          password,
+        }),
+        15000,
+        'Login'
+      );
 
       if (error) {
         throw error;
@@ -130,55 +165,100 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (authUser) {
         const appUser = await mapSessionToUser(authUser);
         setUser(appUser);
+        secureLog('info', 'User logged in successfully');
       }
     } catch (error) {
-      console.error('Login error:', error);
-      throw error;
+      secureLog('warn', 'Login failed');
+      throw handleError(error, 'login');
     }
   };
 
   const signup = async (email: string, password: string, name: string) => {
+    // Validate email format
+    if (!isValidEmail(email)) {
+      throw createAppError(ErrorCode.VALIDATION_ERROR, 'Invalid email format');
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      throw createAppError(ErrorCode.VALIDATION_ERROR, passwordValidation.errors.join(', '));
+    }
+
+    // Validate name
+    if (!name || name.trim().length < 2) {
+      throw createAppError(ErrorCode.VALIDATION_ERROR, 'Name must be at least 2 characters');
+    }
+
+    // Rate limiting for signup
+    const rateLimitCheck = checkRateLimit('signup');
+    if (!rateLimitCheck.allowed) {
+      throw createAppError(
+        ErrorCode.RATE_LIMITED,
+        `Too many signup attempts. Please wait ${rateLimitCheck.retryAfter} seconds.`
+      );
+    }
+
+    if (!isSupabaseConfigured) {
+      throw createAppError(ErrorCode.CONFIGURATION_ERROR, 'Authentication service is not configured');
+    }
+
     try {
-      const { data: { user: authUser }, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+      const { data: { user: authUser }, error } = await withTimeout(
+        supabase.auth.signUp({
+          email,
+          password,
+        }),
+        15000,
+        'Signup'
+      );
 
       if (error) {
         throw error;
       }
 
       if (authUser) {
-        // Create user profile
+        // Create user profile with sanitized name
+        const sanitizedName = name.trim().slice(0, 100);
         try {
-          await supabase
-            .from('profiles')
-            .insert({
-              id: authUser.id,
-              email,
-              name,
-              avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${name}`,
-            });
+          await withTimeout(
+            supabase
+              .from('profiles')
+              .insert({
+                id: authUser.id,
+                email,
+                name: sanitizedName,
+                avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(sanitizedName)}`,
+              }),
+            10000,
+            'Create profile'
+          );
         } catch (profileError) {
-          console.error('Error creating profile:', profileError);
+          secureLog('warn', 'Failed to create profile during signup');
           // Continue even if profile creation fails
         }
 
         const appUser = await mapSessionToUser(authUser);
         setUser(appUser);
+        secureLog('info', 'User signed up successfully');
       }
     } catch (error) {
-      console.error('Signup error:', error);
-      throw error;
+      secureLog('warn', 'Signup failed');
+      throw handleError(error, 'signup');
     }
   };
 
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
+      if (isSupabaseConfigured) {
+        await supabase.auth.signOut();
+      }
       setUser(null);
+      secureLog('info', 'User logged out');
     } catch (error) {
-      console.error('Error logging out:', error);
+      secureLog('error', 'Error during logout');
+      // Still clear local user state even if signOut fails
+      setUser(null);
     }
   };
 

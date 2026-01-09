@@ -42,3 +42,6 @@ core
 
 # SQL files
 *.sql
+
+# Markdown documentation files
+*.md
