@@ -17,6 +17,7 @@ A modern blogging platform built with React, TypeScript, and Supabase. Create, s
 ## Tech Stack
 
 - **Frontend**: React 18, TypeScript, Vite
+- **State Management**: Redux Toolkit
 - **Styling**: Tailwind CSS, shadcn/ui components
 - **Backend**: Supabase (PostgreSQL, Auth, Storage)
 - **Animations**: Framer Motion
@@ -140,7 +141,6 @@ src/
 │   ├── auth/          # Authentication components
 │   ├── layout/        # Navigation, headers, footers
 │   └── ui/            # Reusable UI components (shadcn/ui)
-├── contexts/          # React contexts (Auth)
 ├── hooks/             # Custom React hooks
 ├── lib/               # Utilities and services
 │   ├── postService.ts # Database operations
@@ -153,7 +153,39 @@ src/
 │   ├── PostDetailPage.tsx
 │   ├── PostEditor.tsx
 │   └── ProfilePage.tsx
+├── store/             # Redux store
+│   ├── index.ts       # Store configuration
+│   ├── hooks.ts       # Typed Redux hooks
+│   └── slices/        # Redux slices
+│       ├── authSlice.ts   # Authentication state
+│       ├── postsSlice.ts  # Posts, comments, bookmarks
+│       └── uiSlice.ts     # UI state (modals, theme)
 └── types/             # TypeScript types
+```
+
+## State Management
+
+This project uses **Redux Toolkit** for global state management:
+
+- **authSlice**: Manages user authentication state, login/signup/logout actions
+- **postsSlice**: Handles posts, comments, bookmarks, and likes with async thunks
+- **uiSlice**: Controls UI state like modals, theme, and notifications
+
+### Usage Example
+
+```tsx
+import { useAppSelector, useAppDispatch } from '@/store/hooks';
+import { login, logout } from '@/store/slices/authSlice';
+import { fetchAllPosts, toggleLike } from '@/store/slices/postsSlice';
+
+// Access state
+const { user, isLoading } = useAppSelector((state) => state.auth);
+const { posts } = useAppSelector((state) => state.posts);
+
+// Dispatch actions
+const dispatch = useAppDispatch();
+dispatch(login({ email, password }));
+dispatch(fetchAllPosts());
 ```
 
 ## Contributing
@@ -168,4 +200,5 @@ This project is open source and available under the [MIT License](LICENSE).
 
 - [shadcn/ui](https://ui.shadcn.com/) for the beautiful UI components
 - [Supabase](https://supabase.com/) for the backend infrastructure
+- [Redux Toolkit](https://redux-toolkit.js.org/) for state management
 - [Tailwind CSS](https://tailwindcss.com/) for the styling system
