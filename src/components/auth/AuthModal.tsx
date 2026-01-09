@@ -49,18 +49,16 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
 
     setIsLoading(true);
     try {
-      const result = await dispatch(login({ email: loginEmail, password: loginPassword })).unwrap();
-      if (result) {
-        setLoginEmail('');
-        setLoginPassword('');
-        onClose();
-        onSuccess?.();
-      }
+      await dispatch(login({ email: loginEmail, password: loginPassword })).unwrap();
+      setLoginEmail('');
+      setLoginPassword('');
+      setIsLoading(false);
+      onClose();
+      onSuccess?.();
     } catch (error) {
       console.error('Login error:', error);
       const message = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Login failed. Please try again.';
       setErrors({ general: message });
-    } finally {
       setIsLoading(false);
     }
   };
@@ -92,19 +90,17 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
 
     setIsLoading(true);
     try {
-      const result = await dispatch(signup({ email: signupEmail, password: signupPassword, name: signupName })).unwrap();
-      if (result) {
-        setSignupEmail('');
-        setSignupPassword('');
-        setSignupName('');
-        onClose();
-        onSuccess?.();
-      }
+      await dispatch(signup({ email: signupEmail, password: signupPassword, name: signupName })).unwrap();
+      setSignupEmail('');
+      setSignupPassword('');
+      setSignupName('');
+      setIsLoading(false);
+      onClose();
+      onSuccess?.();
     } catch (error) {
       console.error('Signup error:', error);
       const message = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Signup failed. Please try again.';
       setErrors({ general: message });
-    } finally {
       setIsLoading(false);
     }
   };
