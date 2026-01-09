@@ -171,32 +171,26 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       })
-      // Login
+      // Login - don't set global isLoading (modal has its own loading state)
       .addCase(login.pending, (state) => {
-        state.isLoading = true;
         state.error = null;
       })
       .addCase(login.fulfilled, (state, action) => {
         state.user = action.payload;
-        state.isLoading = false;
         state.error = null;
       })
       .addCase(login.rejected, (state, action) => {
-        state.isLoading = false;
         state.error = action.payload as string;
       })
-      // Signup
+      // Signup - don't set global isLoading (modal has its own loading state)
       .addCase(signup.pending, (state) => {
-        state.isLoading = true;
         state.error = null;
       })
       .addCase(signup.fulfilled, (state, action) => {
         state.user = action.payload;
-        state.isLoading = false;
         state.error = null;
       })
       .addCase(signup.rejected, (state, action) => {
-        state.isLoading = false;
         state.error = action.payload as string;
       })
       // Logout
