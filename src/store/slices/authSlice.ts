@@ -134,15 +134,19 @@ export const signup = createAsyncThunk(
       if (error) throw error;
 
       if (authUser) {
-        // Create user profile (don't block on this)
-        supabase.from('profiles').insert({
-          id: authUser.id,
-          email,
-          name,
-          avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${name}`,
-        }).catch(profileError => {
-          console.error('Error creating profile:', profileError);
-        });
+        // Create user profile in the background (don't block on this)
+        (async () => {
+          try {
+            await supabase.from('profiles').insert({
+              id: authUser.id,
+              email,
+              name,
+              avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${name}`,
+            });
+          } catch (profileError) {
+            console.error('Error creating profile:', profileError);
+          }
+        })();
 
         const appUser = await mapSessionToUser(authUser);
         return appUser;
