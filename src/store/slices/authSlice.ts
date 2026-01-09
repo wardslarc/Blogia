@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { User } from '@/types/blog';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 interface AuthState {
   user: User | null;
@@ -60,6 +60,10 @@ const mapSessionToUser = async (sessionUser: any): Promise<User> => {
 export const initializeAuth = createAsyncThunk(
   'auth/initialize',
   async (_, { rejectWithValue }) => {
+    if (!isSupabaseConfigured) {
+      console.warn('Supabase not configured, skipping auth initialization');
+      return null;
+    }
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
@@ -76,6 +80,9 @@ export const initializeAuth = createAsyncThunk(
 export const login = createAsyncThunk(
   'auth/login',
   async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
+    if (!isSupabaseConfigured) {
+      return rejectWithValue('Authentication is not configured. Please contact support.');
+    }
     try {
       const { data: { user: authUser }, error } = await supabase.auth.signInWithPassword({
         email,
@@ -101,6 +108,9 @@ export const signup = createAsyncThunk(
     { email, password, name }: { email: string; password: string; name: string },
     { rejectWithValue }
   ) => {
+    if (!isSupabaseConfigured) {
+      return rejectWithValue('Authentication is not configured. Please contact support.');
+    }
     try {
       const { data: { user: authUser }, error } = await supabase.auth.signUp({
         email,

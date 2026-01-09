@@ -48,8 +48,17 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
     if (Object.keys(newErrors).length > 0) return;
 
     setIsLoading(true);
+    
+    // Create a timeout promise
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Login timed out. Please try again.')), 15000);
+    });
+    
     try {
-      await dispatch(login({ email: loginEmail, password: loginPassword })).unwrap();
+      await Promise.race([
+        dispatch(login({ email: loginEmail, password: loginPassword })).unwrap(),
+        timeoutPromise
+      ]);
       setLoginEmail('');
       setLoginPassword('');
       setIsLoading(false);
@@ -89,8 +98,17 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
     if (Object.keys(newErrors).length > 0) return;
 
     setIsLoading(true);
+    
+    // Create a timeout promise
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Signup timed out. Please try again.')), 15000);
+    });
+    
     try {
-      await dispatch(signup({ email: signupEmail, password: signupPassword, name: signupName })).unwrap();
+      await Promise.race([
+        dispatch(signup({ email: signupEmail, password: signupPassword, name: signupName })).unwrap(),
+        timeoutPromise
+      ]);
       setSignupEmail('');
       setSignupPassword('');
       setSignupName('');
