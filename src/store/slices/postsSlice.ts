@@ -108,7 +108,7 @@ export const toggleLike = createAsyncThunk(
       } else {
         await PostService.addLike(postId, userId);
       }
-      const likeCount = await PostService.getLikeCount(postId);
+      const likeCount = await PostService.getLikesCount(postId);
       return { postId, likeCount, isLiked: !isLiked };
     } catch (error: any) {
       return rejectWithValue(error.message);
@@ -164,7 +164,7 @@ export const addComment = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const comment = await PostService.addComment({ postId, userId, content });
+      const comment = await PostService.addComment({ postId, content }, userId);
       return comment;
     } catch (error: any) {
       return rejectWithValue(error.message);

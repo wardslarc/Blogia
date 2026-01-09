@@ -16,6 +16,7 @@ export interface Post {
   author?: User;
   published: boolean;
   readTime: number; // in minutes
+  likeCount?: number;
   createdAt: Date;
   updatedAt: Date;
 }
