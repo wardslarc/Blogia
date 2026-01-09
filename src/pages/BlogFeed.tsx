@@ -33,7 +33,7 @@ export const BlogFeed = () => {
       setIsLoading(true);
       const publishedPosts = await PostService.getAllPosts(true);
       setPosts(publishedPosts);
-      setIsLoading(false);
+      setIsLoading(false); // Show posts immediately
       
       // Load likes and comment counts in the background (don't block)
       for (const post of publishedPosts) {
