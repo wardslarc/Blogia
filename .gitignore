@@ -40,6 +40,5 @@ core
 
 **/tempobook/**
 
-# SQL and Markdown files
+# SQL files
 *.sql
-*.md
