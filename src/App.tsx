@@ -1,7 +1,7 @@
 import { Suspense, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { initializeAuth, setUser } from "@/store/slices/authSlice";
+import { initializeAuth, setUser, setLoading } from "@/store/slices/authSlice";
 import { supabase } from "@/lib/supabase";
 import { Toaster } from "@/components/ui/sonner";
 import { LoadingScreen } from "@/components/LoadingScreen";
@@ -52,22 +52,45 @@ function App() {
   const { isLoading } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
+    let isMounted = true;
+
     // Initialize auth on mount
-    dispatch(initializeAuth());
+    const initialize = async () => {
+      try {
+        await dispatch(initializeAuth()).unwrap();
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        // Ensure loading is set to false even on error
+        dispatch(setLoading(false));
+      }
+    };
+
+    initialize();
+
+    // Failsafe: ensure loading state is cleared after 5 seconds max
+    const timeout = setTimeout(() => {
+      dispatch(setLoading(false));
+    }, 5000);
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (session?.user) {
-          const appUser = await mapSessionToUser(session.user);
-          dispatch(setUser(appUser));
-        } else {
+        if (!isMounted) return;
+        
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          if (session?.user) {
+            const appUser = await mapSessionToUser(session.user);
+            dispatch(setUser(appUser));
+          }
+        } else if (event === 'SIGNED_OUT') {
           dispatch(setUser(null));
         }
       }
     );
 
     return () => {
+      isMounted = false;
+      clearTimeout(timeout);
       subscription?.unsubscribe();
     };
   }, [dispatch]);
