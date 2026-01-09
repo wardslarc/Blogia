@@ -33,6 +33,7 @@ export const BlogFeed = () => {
       setIsLoading(true);
       const publishedPosts = await PostService.getAllPosts(true);
       setPosts(publishedPosts);
+      setIsLoading(false); // Show posts immediately
       
       // Load likes and comment counts in the background (don't block)
       for (const post of publishedPosts) {
@@ -56,7 +57,6 @@ export const BlogFeed = () => {
     } catch (error) {
       toast.error('Failed to load posts');
       console.error('Load posts error:', error);
-    } finally {
       setIsLoading(false);
     }
   };
