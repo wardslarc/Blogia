@@ -10,11 +10,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { logout } from '@/store/slices/authSlice';
 import { AuthModal } from '@/components/auth/AuthModal';
 
 export const Navigation = () => {
-  const { user, isLoading, logout } = useAuth();
+  const dispatch = useAppDispatch();
+  const { user, isLoading } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
   const location = useLocation();
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -23,7 +25,7 @@ export const Navigation = () => {
   const isOnDashboard = location.pathname === '/dashboard';
 
   const handleLogout = async () => {
-    await logout();
+    await dispatch(logout());
     navigate('/');
   };
 

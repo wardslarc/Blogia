@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAppDispatch } from '@/store/hooks';
+import { login, signup } from '@/store/slices/authSlice';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -14,7 +15,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
-  const { login, signup } = useAuth();
+  const dispatch = useAppDispatch();
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
@@ -48,14 +49,16 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
 
     setIsLoading(true);
     try {
-      await login(loginEmail, loginPassword);
-      setLoginEmail('');
-      setLoginPassword('');
-      onClose();
-      onSuccess?.();
+      const result = await dispatch(login({ email: loginEmail, password: loginPassword })).unwrap();
+      if (result) {
+        setLoginEmail('');
+        setLoginPassword('');
+        onClose();
+        onSuccess?.();
+      }
     } catch (error) {
       console.error('Login error:', error);
-      const message = error instanceof Error ? error.message : 'Login failed. Please try again.';
+      const message = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Login failed. Please try again.';
       setErrors({ general: message });
     } finally {
       setIsLoading(false);
@@ -89,15 +92,17 @@ export const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
 
     setIsLoading(true);
     try {
-      await signup(signupEmail, signupPassword, signupName);
-      setSignupEmail('');
-      setSignupPassword('');
-      setSignupName('');
-      onClose();
-      onSuccess?.();
+      const result = await dispatch(signup({ email: signupEmail, password: signupPassword, name: signupName })).unwrap();
+      if (result) {
+        setSignupEmail('');
+        setSignupPassword('');
+        setSignupName('');
+        onClose();
+        onSuccess?.();
+      }
     } catch (error) {
       console.error('Signup error:', error);
-      const message = error instanceof Error ? error.message : 'Signup failed. Please try again.';
+      const message = error instanceof Error ? error.message : typeof error === 'string' ? error : 'Signup failed. Please try again.';
       setErrors({ general: message });
     } finally {
       setIsLoading(false);

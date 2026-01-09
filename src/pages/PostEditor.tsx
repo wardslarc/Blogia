@@ -14,12 +14,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAppSelector } from '@/store/hooks';
 import { PostService } from '@/lib/postService';
 import { toast } from 'sonner';
 
 export const PostEditor = () => {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
   const { id } = useParams<{ id?: string }>();
 

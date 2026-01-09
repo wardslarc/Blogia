@@ -5,14 +5,14 @@ import { Clock, Heart, MessageCircle, Share2, ArrowRight, X } from 'lucide-react
 import { Navigation } from '@/components/layout/Navigation';
 import { PostService } from '@/lib/postService';
 import { Post, Comment } from '@/types/blog';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAppSelector } from '@/store/hooks';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 export const BlogFeed = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user } = useAppSelector((state) => state.auth);
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [likes, setLikes] = useState<{ [key: string]: boolean }>({});
@@ -173,7 +173,7 @@ const PostCard = ({
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [isAddingComment, setIsAddingComment] = useState(false);
   const [localCommentDelta, setLocalCommentDelta] = useState(0);
-  const { user } = useAuth();
+  const { user } = useAppSelector((state) => state.auth);
 
   // Display count = parent count + local changes (adds/deletes)
   const displayCommentCount = commentCount + localCommentDelta;

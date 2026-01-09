@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PenLine, Eye, Edit, Trash2, Clock } from 'lucide-react';
 import { Navigation } from '@/components/layout/Navigation';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAppSelector } from '@/store/hooks';
 import { PostService } from '@/lib/postService';
 import { Post } from '@/types/blog';
 import { toast } from 'sonner';
@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 export const Dashboard = () => {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
   const location = useLocation();
   const [posts, setPosts] = useState<Post[]>([]);

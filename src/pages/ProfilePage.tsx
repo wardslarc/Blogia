@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Heart, MessageCircle, Share2, FileText, Edit, Camera, Calendar, Loader2, Bookmark } from 'lucide-react';
 import { Navigation } from '@/components/layout/Navigation';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAppSelector } from '@/store/hooks';
 import { PostService } from '@/lib/postService';
 import { Post } from '@/types/blog';
 import { toast } from 'sonner';
@@ -38,7 +38,7 @@ interface ProfileUser {
 export const ProfilePage = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  const { user: currentUser, isLoading: authLoading } = useAuth();
+  const { user: currentUser, isLoading: authLoading } = useAppSelector((state) => state.auth);
   const [profileUser, setProfileUser] = useState<ProfileUser | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);

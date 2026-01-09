@@ -5,10 +5,10 @@ import { ArrowRight, BookOpen, PenTool, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Navigation } from '@/components/layout/Navigation';
 import { AuthModal } from '@/components/auth/AuthModal';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAppSelector } from '@/store/hooks';
 
 export const LandingPage = () => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
   const [showAuthModal, setShowAuthModal] = useState(false);
 
